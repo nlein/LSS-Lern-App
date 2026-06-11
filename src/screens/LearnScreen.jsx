@@ -35,6 +35,7 @@ export default function LearnScreen() {
   const [fontSize, setFontSize]         = useState(FONT_SIZES.medium);
   const [questions, setQuestions]       = useState([]);
   const [dailyGoal, setDailyGoal]       = useState(DEFAULT_DAILY_GOAL);
+  const [nurPruefung, setNurPruefung]   = useState(false);
 
   const [current, setCurrent]           = useState(null);
   const [selected, setSelected]         = useState(null);
@@ -48,8 +49,8 @@ export default function LearnScreen() {
   const roundSeenRef = useRef(new Set());
 
   // A+B: pick next question with unseen-first round-robin + fresh displayKey
-  function pickNextQuestion(perf, mods, sel, qs) {
-    const p = filterQuestions(qs, mods, sel);
+  function pickNextQuestion(perf, mods, sel, qs, np = false) {
+    const p = filterQuestions(qs, mods, sel, np);
     if (!p.length) return null;
     const unseen = p.filter((q) => !roundSeenRef.current.has(q.id));
     if (unseen.length === 0) {
@@ -64,7 +65,7 @@ export default function LearnScreen() {
 
   useEffect(() => {
     async function init() {
-      const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal] = await Promise.all([
+      const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal, np] = await Promise.all([
         loadJSON(KEYS.PERFORMANCE, {}),
         loadJSON(KEYS.ACTIVE_MODULES, buildDefaultModules()),
         loadJSON(KEYS.FLAGGED, {}),
@@ -74,6 +75,7 @@ export default function LearnScreen() {
         loadJSON(KEYS.DAILY, { date: '', count: 0 }),
         loadJSON(KEYS.STREAK, { count: 0, lastDate: '' }),
         loadJSON(KEYS.DAILY_GOAL, DEFAULT_DAILY_GOAL),
+        loadJSON(KEYS.NUR_PRUEFUNG, false),
       ]);
 
       const { result: migratedMods, changed } = migrateActiveModules(mods);
@@ -86,6 +88,7 @@ export default function LearnScreen() {
       setSelection(sel);
       setFontSize(FONT_SIZES[savedSize] ?? FONT_SIZES.medium);
       setDailyGoal(goal);
+      setNurPruefung(np);
       setTodayCount(daily.date === todayKey() ? daily.count : 0);
       setStreakCount(streak.count);
 
@@ -93,7 +96,7 @@ export default function LearnScreen() {
       setQuestions(qs);
 
       roundSeenRef.current = new Set();
-      setCurrent(pickNextQuestion(perf, migratedMods, sel, qs));
+      setCurrent(pickNextQuestion(perf, migratedMods, sel, qs, np));
     }
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,7 +105,7 @@ export default function LearnScreen() {
   useFocusEffect(
     useCallback(() => {
       async function refresh() {
-        const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal] = await Promise.all([
+        const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal, np] = await Promise.all([
           loadJSON(KEYS.PERFORMANCE, {}),
           loadJSON(KEYS.ACTIVE_MODULES, buildDefaultModules()),
           loadJSON(KEYS.FLAGGED, {}),
@@ -112,6 +115,7 @@ export default function LearnScreen() {
           loadJSON(KEYS.DAILY, { date: '', count: 0 }),
           loadJSON(KEYS.STREAK, { count: 0, lastDate: '' }),
           loadJSON(KEYS.DAILY_GOAL, DEFAULT_DAILY_GOAL),
+          loadJSON(KEYS.NUR_PRUEFUNG, false),
         ]);
 
         const { result: migratedMods } = migrateActiveModules(mods);
@@ -122,6 +126,7 @@ export default function LearnScreen() {
         setSelection(sel);
         setFontSize(FONT_SIZES[savedSize] ?? FONT_SIZES.medium);
         setDailyGoal(goal);
+        setNurPruefung(np);
         setTodayCount(daily.date === todayKey() ? daily.count : 0);
         setStreakCount(streak.count);
 
@@ -140,8 +145,8 @@ export default function LearnScreen() {
   }
 
   const pool = useMemo(
-    () => filterQuestions(questions, activeModules, selection),
-    [questions, activeModules, selection]
+    () => filterQuestions(questions, activeModules, selection, nurPruefung),
+    [questions, activeModules, selection, nurPruefung]
   );
 
   async function handleAnswer(result) {
@@ -201,7 +206,7 @@ export default function LearnScreen() {
   function handleNext() {
     // Mark current as seen in this round before picking next
     if (current) roundSeenRef.current.add(current.id);
-    setCurrent(pickNextQuestion(performance, activeModules, selection, questions));
+    setCurrent(pickNextQuestion(performance, activeModules, selection, questions, nurPruefung));
     setSelected(null);
     setPhase('question');
   }
@@ -264,7 +269,7 @@ export default function LearnScreen() {
     await saveJSON(KEYS.SELECTION, newSel);
     // A: pool changed — reset round
     roundSeenRef.current = new Set();
-    setCurrent(pickNextQuestion(performance, activeModules, newSel, questions));
+    setCurrent(pickNextQuestion(performance, activeModules, newSel, questions, nurPruefung));
     setSelected(null);
     setPhase('question');
   }

@@ -29,9 +29,11 @@ export function weightedRandom(questions, performance) {
 }
 
 // selection = { schriftlich: bool, kommission: bool }
-export function filterQuestions(questions, activeModules, selection) {
+// nurPruefung = bool — when true, only questions with relevanz === 'pruefung'
+export function filterQuestions(questions, activeModules, selection, nurPruefung = false) {
   return questions.filter((q) => {
     if (!activeModules[q.module]) return false;
+    if (nurPruefung && q.relevanz !== 'pruefung') return false;
     const isMC = q.type === 'multiple_choice' || q.type === 'multiple_choice_multi';
     const isOpen = q.type === 'open';
     if (selection.schriftlich && isMC) return true;

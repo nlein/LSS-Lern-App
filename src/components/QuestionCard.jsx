@@ -15,25 +15,27 @@ export default function QuestionCard({
 
   // B: shuffle once per display — _displayKey changes every time a question is shown
   // (even if it's the same question.id), ensuring fresh shuffles on repeated questions
-  const { options, correct } = useMemo(
+  // indices[shuffledPos] = originalPos — used to pass original index to onAnswer
+  const { options, correct, indices } = useMemo(
     () => shuffleOptions(question.options, question.correct),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [question._displayKey ?? question.id]
   );
 
+  // selected is in original-index space; idx is shuffled position
   function optionStyle(idx) {
     if (phase !== 'answer') {
-      return selected === idx ? styles.optionSelected : styles.option;
+      return indices[idx] === selected ? styles.optionSelected : styles.option;
     }
     if (idx === correct) return styles.optionCorrect;
-    if (idx === selected && idx !== correct) return styles.optionWrong;
+    if (indices[idx] === selected && idx !== correct) return styles.optionWrong;
     return styles.option;
   }
 
   function optionTextStyle(idx) {
-    if (phase !== 'answer') return { color: selected === idx ? colors.accent : colors.text };
+    if (phase !== 'answer') return { color: indices[idx] === selected ? colors.accent : colors.text };
     if (idx === correct) return { color: colors.correct };
-    if (idx === selected && idx !== correct) return { color: colors.wrong };
+    if (indices[idx] === selected && idx !== correct) return { color: colors.wrong };
     return { color: colors.textMuted };
   }
 
@@ -65,7 +67,7 @@ export default function QuestionCard({
           <TouchableOpacity
             key={idx}
             style={optionStyle(idx)}
-            onPress={() => phase === 'question' && onAnswer(idx)}
+            onPress={() => phase === 'question' && onAnswer(indices[idx])}
             activeOpacity={phase === 'question' ? 0.7 : 1}
           >
             <Text style={[styles.optionLabel, { fontSize: fontSize.option, color: colors.textMuted }]}>

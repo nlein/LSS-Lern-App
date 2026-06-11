@@ -14,14 +14,15 @@ export default function MultiChoiceCard({
   const perf = performance[question.id];
 
   // B: shuffle once per display — _displayKey changes every time a question is shown
-  const { options, correct: shuffledCorrect } = useMemo(
+  // indices[shuffledPos] = originalPos; toShuffled[originalPos] = shuffledPos
+  const { options, correct: shuffledCorrect, indices, toShuffled } = useMemo(
     () => shuffleOptions(question.options, question.correct ?? []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [question._displayKey ?? question.id]
   );
   const correctSet = useMemo(() => new Set(shuffledCorrect), [shuffledCorrect]);
 
-  // Local picked state (uses shuffled indices)
+  // Local picked state (uses shuffled indices for display)
   const [picked, setPicked] = useState([]);
   useEffect(() => { setPicked([]); }, [question.id]);
 
@@ -34,16 +35,22 @@ export default function MultiChoiceCard({
 
   function handleConfirm() {
     if (phase !== 'question') return;
-    onAnswer(picked);
+    // pass original-space indices so handleAnswer can compare against question.correct
+    onAnswer(picked.map((i) => indices[i]));
+  }
+
+  // selected (from parent) is in original-index space; convert to shuffled for display
+  function pickedSetAfterAnswer() {
+    return new Set((selected ?? []).map((origIdx) => toShuffled[origIdx]));
   }
 
   function optionStyle(idx) {
     if (phase === 'question') {
       return picked.includes(idx) ? styles.optionSelected : styles.option;
     }
-    const pickedSet = new Set(selected ?? []);
+    const ps = pickedSetAfterAnswer();
     if (correctSet.has(idx)) return styles.optionCorrect;
-    if (pickedSet.has(idx) && !correctSet.has(idx)) return styles.optionWrong;
+    if (ps.has(idx) && !correctSet.has(idx)) return styles.optionWrong;
     return styles.option;
   }
 
@@ -51,25 +58,27 @@ export default function MultiChoiceCard({
     if (phase === 'question') {
       return picked.includes(idx) ? colors.accent : colors.text;
     }
-    const pickedSet = new Set(selected ?? []);
+    const ps = pickedSetAfterAnswer();
     if (correctSet.has(idx)) return colors.correct;
-    if (pickedSet.has(idx)) return colors.wrong;
+    if (ps.has(idx)) return colors.wrong;
     return colors.textMuted;
   }
 
   function checkboxIcon(idx) {
     if (phase === 'question') return picked.includes(idx) ? '☑' : '☐';
-    const pickedSet = new Set(selected ?? []);
+    const ps = pickedSetAfterAnswer();
     if (correctSet.has(idx)) return '✓';
-    if (pickedSet.has(idx)) return '✗';
+    if (ps.has(idx)) return '✗';
     return '☐';
   }
 
+  // selected is original-space; compare against question.correct (also original-space)
+  const origCorrectSet = useMemo(() => new Set(question.correct ?? []), [question.correct]);
   const isCorrect =
     phase === 'answer' &&
     selected != null &&
-    selected.length === shuffledCorrect.length &&
-    selected.every((i) => correctSet.has(i));
+    selected.length === origCorrectSet.size &&
+    selected.every((i) => origCorrectSet.has(i));
 
   return (
     <View style={styles.card}>
