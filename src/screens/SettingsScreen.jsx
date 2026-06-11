@@ -491,7 +491,7 @@ export default function SettingsScreen() {
             Jede Frage bekommt ein Gewicht:{'\n'}
             <Text style={styles.infoCode}>Gewicht = max(1, 10 + falsch×3 − richtig×2)</Text>
             {'\n\n'}Falsch beantwortete Fragen erscheinen häufiger. Bei offenen Fragen zählt „Konnte ich" als richtig, „Teilweise" als halb, „Konnte ich nicht" als falsch.{'\n\n'}
-            Alphadi-Übungstest-Fragen starten mit Gewicht 15.
+            Übungsfragen starten mit höherem Gewicht (15).
           </Text>
         </View>
       </View>
