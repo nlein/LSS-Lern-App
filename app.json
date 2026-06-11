@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "LSS Lern-App",
+    "slug": "lss-lern-app",
+    "version": "1.1.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5d70d454-54c5-4c39-804e-cec65b573167"
+    },
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6d28d9"
+    },
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "de.nlein.lss",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundImage": "./assets/adaptive-background.png",
+        "backgroundColor": "#6d28d9"
+      }
+    },
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5d70d454-54c5-4c39-804e-cec65b573167"
+      }
+    },
+    "owner": "nlein"
+  }
+}

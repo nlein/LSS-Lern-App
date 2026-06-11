@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Vite cache
+.vite/
+
+# Build outputs
+build/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Environment
+.env
+.env.*
+.env.local
+*.local
+
+# Alphadi-Materialien (urheberrechtlich geschützt – NICHT ins Repo)
+mitschriften-quelle/
+_intern/
+
+# Cockpit & interne Projektdokumente
+_COCKPIT_*.md
+_AUFTRAG_*.md
+_BACKLOG_*.md
+_STATUS_*.md
+_NEU_Fragen_*.json
+_dispatch/
+CLAUDE.md
+_privat/
+COCKPIT-HANDOFF.md
+.claude/
+
+# Fragen-Werkzeuge und Lerninhalte (lokal / nicht öffentlich)
+_fragen_neu/
+_fragen_verifikation/
+scripts/
+src/data/questions/
+APP_REQUIREMENTS.md
+MITSCHRIFTEN_WORKFLOW.md
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# Native build dirs (bare workflow)
+android/
+ios/
