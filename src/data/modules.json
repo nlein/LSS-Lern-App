@@ -16,17 +16,14 @@
   { "id": "pmi",                "name": "Projektmanagement (PMI)",            "group": "pmi",        "format": "schriftlich",            "relevanz": "pruefung" },
   { "id": "scrum_psm",          "name": "SCRUM Master (PSM I)",               "group": "scrum",      "format": "schriftlich",            "relevanz": "pruefung" },
   { "id": "scrum_pspo_1",       "name": "SCRUM Product Owner (PSPO I)",       "group": "scrum",      "format": "schriftlich",            "relevanz": "pruefung" },
-  { "id": "digi_ki_1",          "name": "Digitalisierung & KI 1",             "group": "digi",       "format": "schriftlich",            "relevanz": "pruefung" },
+  { "id": "digi_ki_1",          "name": "Digitalisierung & KI",               "group": "digi",       "format": "schriftlich",            "relevanz": "pruefung" },
   { "id": "ehs_risiko",         "name": "EHS & Risikomanagement",             "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
   { "id": "qm_grundlagen",      "name": "Grundlagen QM",                      "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
   { "id": "auditieren",         "name": "Auditieren",                         "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
   { "id": "apqp_ppap",          "name": "APQP & PPAP",                        "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
-  { "id": "design_thinking_1",  "name": "Design Thinking 1",                  "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
-  { "id": "design_thinking_2",  "name": "Design Thinking 2",                  "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
+  { "id": "design_thinking",    "name": "Design Thinking",                    "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
   { "id": "change_leadership",  "name": "Change & Leadership",                "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
   { "id": "csr",                "name": "CSR",                                "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
   { "id": "business_mgmt",      "name": "Business Management",                "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
-  { "id": "digi_ki_2",          "name": "Digitalisierung & KI 2",             "group": "digi",       "format": "schriftlich",            "relevanz": "vertiefung" },
-  { "id": "digi_ki_3",          "name": "Digitalisierung & KI 3",             "group": "digi",       "format": "schriftlich",            "relevanz": "vertiefung" },
-  { "id": "digi_ki_4",          "name": "Digitalisierung & KI 4",             "group": "digi",       "format": "schriftlich",            "relevanz": "vertiefung" }
+  { "id": "digi_ki_vertiefung", "name": "Digitalisierung & KI (Vertiefung)", "group": "digi",       "format": "schriftlich",            "relevanz": "vertiefung" }
 ]

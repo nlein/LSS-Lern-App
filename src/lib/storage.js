@@ -32,12 +32,15 @@ export async function saveJSON(key, value) {
   } catch {}
 }
 
-// Map old (pre-v1.1) module IDs to new merged IDs
+// Map old module IDs to new merged IDs
 const MODULE_MIGRATIONS = [
   { old: ['lss_dmaic_1', 'lss_dmaic_2', 'lss_dmaic_3'], newId: 'lss_dmaic' },
   { old: ['qs_1_msa_pum', 'qs_2_spc'],                  newId: 'qs' },
   { old: ['pmi_1', 'pmi_2', 'pmi_3'],                   newId: 'pmi' },
   { old: ['scrum_psm_1', 'scrum_psm_2'],                 newId: 'scrum_psm' },
+  // v1.1.3: module consolidations
+  { old: ['design_thinking_1', 'design_thinking_2'],                   newId: 'design_thinking' },
+  { old: ['digi_ki_2', 'digi_ki_3', 'digi_ki_4'],                      newId: 'digi_ki_vertiefung' },
 ];
 
 export function migrateActiveModules(stored) {

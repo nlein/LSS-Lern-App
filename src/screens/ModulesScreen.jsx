@@ -138,6 +138,11 @@ export default function ModulesScreen() {
                       <Text style={[styles.moduleName, !isOn && styles.moduleNameOff]} numberOfLines={1}>
                         {mod.name}
                       </Text>
+                      {mod.relevanz === 'pruefung' && (
+                        <View style={[styles.commBadge, { backgroundColor: colors.accentDim }]}>
+                          <Text style={[styles.commBadgeText, { color: colors.accent }]}>S</Text>
+                        </View>
+                      )}
                       {mod.format === 'schriftlich+kommission' && (
                         <View style={styles.commBadge}>
                           <Text style={styles.commBadgeText}>K</Text>
