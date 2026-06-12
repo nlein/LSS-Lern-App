@@ -4,7 +4,7 @@ import {
   Alert, Switch, Linking
 } from 'react-native';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
 import Constants from 'expo-constants';
 import { useFocusEffect } from '@react-navigation/native';
@@ -26,7 +26,7 @@ const FONT_OPTIONS = [
   { id: 'large',  label: 'Groß'   },
 ];
 
-const DAILY_GOAL_OPTIONS = [10, 15, 20, 30, 50];
+const DAILY_GOAL_OPTIONS = [15, 25, 50, 75, 100];
 
 const THEME_OPTIONS = [
   { id: 'system', label: 'System' },
@@ -43,7 +43,7 @@ export default function SettingsScreen() {
   const { colors, mode: themeMode, setMode: setThemeMode } = useTheme();
 
   const [fontSize,   setFontSize]   = useState('medium');
-  const [dailyGoal,  setDailyGoal]  = useState(20);
+  const [dailyGoal,  setDailyGoal]  = useState(25);
   const [notifPrefs, setNotifPrefs] = useState(DEFAULT_TIMES);
   const [flagged,    setFlagged]    = useState({});
   const [reports,    setReports]    = useState({});
@@ -56,13 +56,16 @@ export default function SettingsScreen() {
           loadJSON(KEYS.FLAGGED, {}),
           loadJSON(KEYS.FONT_SIZE, 'medium'),
           loadJSON(KEYS.REPORTS, {}),
-          loadJSON(KEYS.DAILY_GOAL, 20),
+          loadJSON(KEYS.DAILY_GOAL, 25),
           loadJSON(KEYS.NOTIF_PREFS, DEFAULT_TIMES),
         ]);
         setFlagged(fl);
         setFontSize(fs);
         setReports(rep);
-        setDailyGoal(goal);
+        // Migration: old value not in new options list → reset to 25
+        const migratedGoal = DAILY_GOAL_OPTIONS.includes(goal) ? goal : 25;
+        if (migratedGoal !== goal) await saveJSON(KEYS.DAILY_GOAL, migratedGoal);
+        setDailyGoal(migratedGoal);
         setNotifPrefs(Array.isArray(prefs) ? prefs : DEFAULT_TIMES);
       }
       load();
@@ -221,8 +224,8 @@ export default function SettingsScreen() {
       } else {
         Alert.alert('Exportiert', 'Datei gespeichert:\n' + filePath);
       }
-    } catch {
-      Alert.alert('Fehler', 'Export fehlgeschlagen.');
+    } catch (e) {
+      Alert.alert('Fehler', String(e?.message ?? e));
     }
   }
 
@@ -271,8 +274,8 @@ export default function SettingsScreen() {
           },
         ]
       );
-    } catch {
-      Alert.alert('Fehler', 'Datei konnte nicht gelesen werden. Stelle sicher, dass es eine gültige LSS-Backup-Datei ist.');
+    } catch (e) {
+      Alert.alert('Fehler', String(e?.message ?? e));
     }
   }
 
@@ -490,8 +493,7 @@ export default function SettingsScreen() {
           <Text style={styles.infoBoxText}>
             Jede Frage bekommt ein Gewicht:{'\n'}
             <Text style={styles.infoCode}>Gewicht = max(1, 10 + falsch×3 − richtig×2)</Text>
-            {'\n\n'}Falsch beantwortete Fragen erscheinen häufiger. Bei offenen Fragen zählt „Konnte ich" als richtig, „Teilweise" als halb, „Konnte ich nicht" als falsch.{'\n\n'}
-            Übungsfragen starten mit höherem Gewicht (15).
+            {'\n\n'}Falsch beantwortete Fragen erscheinen häufiger. Bei offenen Fragen zählt „Konnte ich" als richtig, „Teilweise" als halb, „Konnte ich nicht" als falsch.
           </Text>
         </View>
       </View>

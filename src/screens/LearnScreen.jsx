@@ -12,13 +12,14 @@ import {
   incrementDaily, updateStreak, todayKey,
 } from '../lib/storage';
 import { weightedRandom, filterQuestions } from '../lib/spacedRepetition';
+import { scheduleReminders, DEFAULT_TIMES } from '../lib/notifications';
 import QuestionCard from '../components/QuestionCard';
 import OpenQuestionCard from '../components/OpenQuestionCard';
 import MultiChoiceCard from '../components/MultiChoiceCard';
 import modulesData from '../data/modules.json';
 
 const DEFAULT_SELECTION  = { schriftlich: true, kommission: true };
-const DEFAULT_DAILY_GOAL = 20;
+const DEFAULT_DAILY_GOAL = 25;
 
 function loadAllQuestions() {
   return require('../data/questions').all ?? [];
@@ -44,9 +45,8 @@ export default function LearnScreen() {
   const [todayCount, setTodayCount]     = useState(0);
   const [streakCount, setStreakCount]   = useState(0);
 
-  // A: track which question IDs have been shown in the current round;
-  // reset when all pool questions seen once, or when pool changes.
-  const roundSeenRef = useRef(new Set());
+  const roundSeenRef   = useRef(new Set());
+  const notifPrefsRef  = useRef(DEFAULT_TIMES);
 
   // A+B: pick next question with unseen-first round-robin + fresh displayKey
   function pickNextQuestion(perf, mods, sel, qs, np = false) {
@@ -65,7 +65,7 @@ export default function LearnScreen() {
 
   useEffect(() => {
     async function init() {
-      const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal, np] = await Promise.all([
+      const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal, np, notifPrefs] = await Promise.all([
         loadJSON(KEYS.PERFORMANCE, {}),
         loadJSON(KEYS.ACTIVE_MODULES, buildDefaultModules()),
         loadJSON(KEYS.FLAGGED, {}),
@@ -76,10 +76,13 @@ export default function LearnScreen() {
         loadJSON(KEYS.STREAK, { count: 0, lastDate: '' }),
         loadJSON(KEYS.DAILY_GOAL, DEFAULT_DAILY_GOAL),
         loadJSON(KEYS.NUR_PRUEFUNG, false),
+        loadJSON(KEYS.NOTIF_PREFS, DEFAULT_TIMES),
       ]);
 
       const { result: migratedMods, changed } = migrateActiveModules(mods);
       if (changed) await saveJSON(KEYS.ACTIVE_MODULES, migratedMods);
+
+      notifPrefsRef.current = Array.isArray(notifPrefs) ? notifPrefs : DEFAULT_TIMES;
 
       setPerformance(perf);
       setActiveModules(migratedMods);
@@ -89,7 +92,8 @@ export default function LearnScreen() {
       setFontSize(FONT_SIZES[savedSize] ?? FONT_SIZES.medium);
       setDailyGoal(goal);
       setNurPruefung(np);
-      setTodayCount(daily.date === todayKey() ? daily.count : 0);
+      const todayCountInit = daily.date === todayKey() ? daily.count : 0;
+      setTodayCount(todayCountInit);
       setStreakCount(streak.count);
 
       const qs = loadAllQuestions().map((q) => ({ ...q, _flagged: fl[q.id] ?? false }));
@@ -97,6 +101,9 @@ export default function LearnScreen() {
 
       roundSeenRef.current = new Set();
       setCurrent(pickNextQuestion(perf, migratedMods, sel, qs, np));
+
+      const remaining = Math.max(0, goal - todayCountInit);
+      scheduleReminders(notifPrefsRef.current, remaining, goal).catch(() => {});
     }
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -105,7 +112,7 @@ export default function LearnScreen() {
   useFocusEffect(
     useCallback(() => {
       async function refresh() {
-        const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal, np] = await Promise.all([
+        const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal, np, notifPrefs] = await Promise.all([
           loadJSON(KEYS.PERFORMANCE, {}),
           loadJSON(KEYS.ACTIVE_MODULES, buildDefaultModules()),
           loadJSON(KEYS.FLAGGED, {}),
@@ -116,9 +123,11 @@ export default function LearnScreen() {
           loadJSON(KEYS.STREAK, { count: 0, lastDate: '' }),
           loadJSON(KEYS.DAILY_GOAL, DEFAULT_DAILY_GOAL),
           loadJSON(KEYS.NUR_PRUEFUNG, false),
+          loadJSON(KEYS.NOTIF_PREFS, DEFAULT_TIMES),
         ]);
 
         const { result: migratedMods } = migrateActiveModules(mods);
+        notifPrefsRef.current = Array.isArray(notifPrefs) ? notifPrefs : DEFAULT_TIMES;
         setPerformance(perf);
         setActiveModules(migratedMods);
         setFlagged(fl);
@@ -127,7 +136,8 @@ export default function LearnScreen() {
         setFontSize(FONT_SIZES[savedSize] ?? FONT_SIZES.medium);
         setDailyGoal(goal);
         setNurPruefung(np);
-        setTodayCount(daily.date === todayKey() ? daily.count : 0);
+        const todayCountRefresh = daily.date === todayKey() ? daily.count : 0;
+        setTodayCount(todayCountRefresh);
         setStreakCount(streak.count);
 
         const qs = loadAllQuestions().map((q) => ({ ...q, _flagged: fl[q.id] ?? false }));
@@ -135,6 +145,9 @@ export default function LearnScreen() {
 
         // Reset round when coming back from other screens (pool may have changed)
         roundSeenRef.current = new Set();
+
+        const remaining = Math.max(0, goal - todayCountRefresh);
+        scheduleReminders(notifPrefsRef.current, remaining, goal).catch(() => {});
       }
       refresh();
     }, [])
@@ -175,6 +188,7 @@ export default function LearnScreen() {
       [current.id]: {
         correct:   prev.correct   + (isCorrect ? 1 : isPartial ? 0.5 : 0),
         incorrect: prev.incorrect + (!isCorrect && !isPartial ? 1 : 0),
+        attempts:  (prev.attempts ?? 0) + 1,
         lastSeen:  Date.now(),
       },
     };
@@ -184,6 +198,8 @@ export default function LearnScreen() {
     const daily    = await incrementDaily();
     const newCount = daily.count;
     setTodayCount(newCount);
+    const remaining = Math.max(0, dailyGoal - newCount);
+    scheduleReminders(notifPrefsRef.current, remaining, dailyGoal).catch(() => {});
     const newStreak = await updateStreak(newCount, dailyGoal);
     setStreakCount(newStreak.count);
 
@@ -310,12 +326,6 @@ export default function LearnScreen() {
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: colors.correct }]}>✓{sessionStats.correct}</Text>
             <Text style={styles.statLabel}>Richtig</Text>
-          </View>
-        )}
-        {sessionTotal > 0 && (
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.wrong }]}>✗{sessionStats.incorrect}</Text>
-            <Text style={styles.statLabel}>Falsch</Text>
           </View>
         )}
       </View>

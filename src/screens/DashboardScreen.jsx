@@ -3,9 +3,8 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useTheme } from '../lib/ThemeContext';
-import { loadJSON, KEYS } from '../lib/storage';
+import { loadJSON, KEYS, migrateActiveModules, todayKey } from '../lib/storage';
 import { calcModuleStats } from '../lib/spacedRepetition';
-import { todayKey } from '../lib/storage';
 import modulesData from '../data/modules.json';
 
 function loadAllQuestions() {
@@ -26,32 +25,42 @@ export default function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       async function load() {
-        const [perf, daily, streak] = await Promise.all([
+        const [perf, mods, daily, streak, np] = await Promise.all([
           loadJSON(KEYS.PERFORMANCE, {}),
+          loadJSON(KEYS.ACTIVE_MODULES, {}),
           loadJSON(KEYS.DAILY, { date: '', count: 0 }),
           loadJSON(KEYS.STREAK, { count: 0 }),
+          loadJSON(KEYS.NUR_PRUEFUNG, false),
         ]);
 
-        const questions   = loadAllQuestions();
-        const today       = todayKey();
-        const todayCount  = daily.date === today ? daily.count : 0;
+        const { result: activeMods } = migrateActiveModules(mods);
+        const questions  = loadAllQuestions();
+        const today      = todayKey();
+        const todayCount = daily.date === today ? daily.count : 0;
 
-        const moduleStats = modulesData.map((mod) => ({
+        const visibleModules = modulesData.filter((m) => {
+          if (!activeMods[m.id]) return false;
+          if (np && m.relevanz !== 'pruefung') return false;
+          return true;
+        });
+
+        const moduleStats = visibleModules.map((mod) => ({
           ...mod,
           ...calcModuleStats(questions, perf, mod.id),
         }));
 
-        const totalCorrect = moduleStats.reduce((s, m) => {
-          return s + questions.filter((q) => q.module === m.id).reduce(
-            (acc, q) => acc + (perf[q.id]?.correct || 0), 0
-          );
-        }, 0);
-        const totalIncorrect = moduleStats.reduce((s, m) => {
-          return s + questions.filter((q) => q.module === m.id).reduce(
-            (acc, q) => acc + (perf[q.id]?.incorrect || 0), 0
-          );
-        }, 0);
-        const totalAnswered  = totalCorrect + totalIncorrect;
+        const totalCorrect = visibleModules.reduce((sum, mod) =>
+          sum + questions.filter((q) => q.module === mod.id).reduce(
+            (s, q) => s + (perf[q.id]?.correct || 0), 0
+          ), 0
+        );
+        const totalAnswered = visibleModules.reduce((sum, mod) =>
+          sum + questions.filter((q) => q.module === mod.id).reduce((s, q) => {
+            const p = perf[q.id];
+            if (!p) return s;
+            return s + (p.attempts ?? (Math.round(p.correct || 0) + (p.incorrect || 0)));
+          }, 0), 0
+        );
         const overallAccuracy = totalAnswered > 0
           ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
 
@@ -61,6 +70,7 @@ export default function DashboardScreen() {
         setData({
           moduleStats, totalAnswered, overallAccuracy,
           todayCount, streak: streak.count, weakest,
+          hasModules: visibleModules.length > 0,
         });
       }
       load();
@@ -77,7 +87,17 @@ export default function DashboardScreen() {
     );
   }
 
-  const { moduleStats, totalAnswered, overallAccuracy, todayCount, streak, weakest } = data;
+  const { moduleStats, totalAnswered, overallAccuracy, todayCount, streak, weakest, hasModules } = data;
+
+  if (!hasModules) {
+    return (
+      <View style={[makeStyles(colors).container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: colors.textMuted, textAlign: 'center', paddingHorizontal: 32 }}>
+          Keine aktiven Module.{'\n'}Gehe zu „Module", um Module zu aktivieren.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -124,7 +144,7 @@ export default function DashboardScreen() {
       )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Alle Module</Text>
+        <Text style={styles.sectionTitle}>Aktive Module</Text>
         {moduleStats.map((mod) => {
           const color = getAccuracyColor(mod.accuracy, mod.seen, colors);
           return (

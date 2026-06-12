@@ -10,15 +10,14 @@ export function calcWeight(perf) {
   return Math.max(1, 10 + perf.incorrect * 3 - perf.correct * 2);
 }
 
-export function calcWeightWithSource(perf, quelle) {
-  const base = quelle === 'uebungstest' ? 15 : 10;
-  if (!perf) return base;
-  return Math.max(1, base + perf.incorrect * 3 - perf.correct * 2);
+export function calcWeightWithSource(perf) {
+  if (!perf) return 10;
+  return Math.max(1, 10 + perf.incorrect * 3 - perf.correct * 2);
 }
 
 export function weightedRandom(questions, performance) {
   if (!questions.length) return null;
-  const weights = questions.map((q) => calcWeightWithSource(performance[q.id], q.quelle));
+  const weights = questions.map((q) => calcWeightWithSource(performance[q.id]));
   const total = weights.reduce((a, b) => a + b, 0);
   let r = Math.random() * total;
   for (let i = 0; i < questions.length; i++) {
@@ -48,10 +47,11 @@ export function calcModuleStats(questions, performance, moduleId) {
   const seen = qs.filter((q) => performance[q.id]);
   const correct = seen.filter((q) => (performance[q.id]?.correct || 0) > 0);
   const totalCorrect = qs.reduce((s, q) => s + (performance[q.id]?.correct || 0), 0);
-  const totalAnswered = qs.reduce(
-    (s, q) => s + (performance[q.id]?.correct || 0) + (performance[q.id]?.incorrect || 0),
-    0
-  );
+  const totalAnswered = qs.reduce((s, q) => {
+    const p = performance[q.id];
+    if (!p) return s;
+    return s + (p.attempts ?? (Math.round(p.correct || 0) + (p.incorrect || 0)));
+  }, 0);
   return {
     total: qs.length,
     seen: seen.length,
