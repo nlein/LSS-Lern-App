@@ -6,7 +6,6 @@ import {
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
-import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -17,7 +16,7 @@ import { scheduleReminders, cancelAllReminders, DEFAULT_TIMES } from '../lib/not
 const GITHUB_REPO        = 'https://github.com/nlein/LSS-Lern-App';
 const RELEASES_URL       = 'https://github.com/nlein/LSS-Lern-App/releases/latest';
 const REPORT_EMAIL       = 'nic.lein@posteo.de';
-const APP_CONTENT_VERSION = 'v1.1.7';
+const APP_CONTENT_VERSION = 'v1.1.8';
 
 function loadAllQuestions() {
   return require('../data/questions').all ?? [];
@@ -298,14 +297,13 @@ export default function SettingsScreen() {
 
   const reportCount = Object.keys(reports).filter((id) => !reports[id].sent).length;
   const flaggedCount = Object.keys(flagged).length;
-  const appVersion = Constants.expoConfig?.version ?? '1.1';
-  const updateInfo = (() => {
+  const contentVersion = APP_CONTENT_VERSION.replace(/^v/, '');
+  const updateDateStr = (() => {
     try {
-      const dateStr = Updates.createdAt
+      return Updates.createdAt
         ? new Date(Updates.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
         : null;
-      return dateStr ? `Stand: ${APP_CONTENT_VERSION} · ${dateStr}` : `Stand: ${APP_CONTENT_VERSION}`;
-    } catch { return `Stand: ${APP_CONTENT_VERSION}`; }
+    } catch { return null; }
   })();
 
   const styles = makeStyles(colors);
@@ -514,8 +512,8 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>App-Info</Text>
         <View style={styles.infoBox}>
           <Text style={styles.infoBoxText}>
-            LSS Lern-App · App-Version {appVersion}{'\n'}
-            {updateInfo ? updateInfo + '\n' : ''}Fragen lokal gespeichert · Updates per OTA{'\n\n'}
+            LSS Lern-App · Version {contentVersion}{'\n'}
+            {updateDateStr ? `Stand: ${updateDateStr} · ` : ''}Updates per OTA{'\n\n'}
             Lizenz: MIT
           </Text>
           <TouchableOpacity onPress={() => Linking.openURL(RELEASES_URL)} style={styles.linkBtn}>
