@@ -14,8 +14,10 @@ import { useTheme } from '../lib/ThemeContext';
 import { loadJSON, saveJSON, KEYS } from '../lib/storage';
 import { scheduleReminders, cancelAllReminders, DEFAULT_TIMES } from '../lib/notifications';
 
-const GITHUB_REPO  = 'https://github.com/nlein/LSS-Lern-App';
-const REPORT_EMAIL = 'nic.lein@posteo.de';
+const GITHUB_REPO        = 'https://github.com/nlein/LSS-Lern-App';
+const RELEASES_URL       = 'https://github.com/nlein/LSS-Lern-App/releases/latest';
+const REPORT_EMAIL       = 'nic.lein@posteo.de';
+const APP_CONTENT_VERSION = 'v1.1.7';
 
 function loadAllQuestions() {
   return require('../data/questions').all ?? [];
@@ -299,12 +301,11 @@ export default function SettingsScreen() {
   const appVersion = Constants.expoConfig?.version ?? '1.1';
   const updateInfo = (() => {
     try {
-      if (Updates.isEmbeddedLaunch || !Updates.updateId) return 'Stand: Eingebaut';
       const dateStr = Updates.createdAt
-        ? new Date(Updates.createdAt).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' })
-        : '–';
-      return `Update: ${Updates.updateId.slice(0, 8)} · ${dateStr}`;
-    } catch { return ''; }
+        ? new Date(Updates.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : null;
+      return dateStr ? `Stand: ${APP_CONTENT_VERSION} · ${dateStr}` : `Stand: ${APP_CONTENT_VERSION}`;
+    } catch { return `Stand: ${APP_CONTENT_VERSION}`; }
   })();
 
   const styles = makeStyles(colors);
@@ -513,10 +514,13 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>App-Info</Text>
         <View style={styles.infoBox}>
           <Text style={styles.infoBoxText}>
-            LSS Lern-App · Version {appVersion}{'\n'}
+            LSS Lern-App · App-Version {appVersion}{'\n'}
             {updateInfo ? updateInfo + '\n' : ''}Fragen lokal gespeichert · Updates per OTA{'\n\n'}
             Lizenz: MIT
           </Text>
+          <TouchableOpacity onPress={() => Linking.openURL(RELEASES_URL)} style={styles.linkBtn}>
+            <Text style={styles.linkText}>Was ist neu? · Release Notes →</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => Linking.openURL(GITHUB_REPO)} style={styles.linkBtn}>
             <Text style={styles.linkText}>GitHub-Repo öffnen →</Text>
           </TouchableOpacity>

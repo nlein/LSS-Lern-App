@@ -1,5 +1,13 @@
 # Changelog – LSS Lern-App
 
+## v1.1.7 – 2026-06-25 (OTA folgt)
+
+- **Fix: Weitermachen wo aufgehört** – App-Neustart und Tab-Wechsel zeigen jetzt dieselbe Frage wie zuvor; `ROUND_STATE` speichert `currentId` und wird in `handleAnswer` + `handleNext` aktualisiert
+- **Lesbare Versionsanzeige** – Einstellungen zeigt `Stand: v1.1.7 · TT.MM.JJJJ` statt kryptischer Update-Hash-ID
+- **Release-Notes-Button** – „Was ist neu?" in App-Info öffnet GitHub-Releases
+
+---
+
 ## v1.1.6 + v1.1.5 – 2026-06-25 (OTA 5ff4413a)
 
 ### v1.1.6 – Prüfungsauswahl & Streak-Fix

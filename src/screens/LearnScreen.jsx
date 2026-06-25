@@ -110,10 +110,17 @@ export default function LearnScreen() {
       const sig = buildSelectionSig(migratedMods, np, sel, nf);
       if (roundState?.sig === sig && Array.isArray(roundState?.seenIds)) {
         roundSeenRef.current = new Set(roundState.seenIds);
+        const restoredPool = filterQuestions(qs, migratedMods, sel, np, nf, perf);
+        const savedQ = roundState.currentId
+          ? restoredPool.find((q) => q.id === roundState.currentId)
+          : null;
+        setCurrent(savedQ
+          ? { ...savedQ, _displayKey: Math.random() }
+          : pickNextQuestion(perf, migratedMods, sel, qs, np, nf));
       } else {
         roundSeenRef.current = new Set();
+        setCurrent(pickNextQuestion(perf, migratedMods, sel, qs, np, nf));
       }
-      setCurrent(pickNextQuestion(perf, migratedMods, sel, qs, np, nf));
 
       const remaining = Math.max(0, goal - todayCountInit);
       scheduleReminders(notifPrefsRef.current, remaining, goal).catch(() => {});
@@ -166,6 +173,15 @@ export default function LearnScreen() {
         } else {
           roundSeenRef.current = new Set();
         }
+
+        // Keep current question if still valid in the (possibly updated) pool
+        setCurrent((prev) => {
+          if (!prev) return pickNextQuestion(perf, migratedMods, sel, qs, np, nf);
+          const newPool = filterQuestions(qs, migratedMods, sel, np, nf, perf);
+          return newPool.some((q) => q.id === prev.id)
+            ? prev
+            : pickNextQuestion(perf, migratedMods, sel, qs, np, nf);
+        });
 
         const remaining = Math.max(0, goal - todayCountRefresh);
         scheduleReminders(notifPrefsRef.current, remaining, goal).catch(() => {});
@@ -222,6 +238,9 @@ export default function LearnScreen() {
     };
     setPerformance(newPerf);
     await saveJSON(KEYS.PERFORMANCE, newPerf);
+    // Persist current question so app restart resumes here
+    const answerSig = buildSelectionSig(activeModules, nurPruefung, selection, nurFalsch);
+    saveJSON(KEYS.ROUND_STATE, { seenIds: [...roundSeenRef.current], currentId: current.id, sig: answerSig }).catch(() => {});
 
     const daily    = await incrementDaily();
     const newCount = daily.count;
@@ -248,10 +267,10 @@ export default function LearnScreen() {
 
   function handleNext() {
     if (current) roundSeenRef.current.add(current.id);
-    // Persist round state so the app can continue where it left off
+    const next = pickNextQuestion(performance, activeModules, selection, questions, nurPruefung, nurFalsch);
     const sig = buildSelectionSig(activeModules, nurPruefung, selection, nurFalsch);
-    saveJSON(KEYS.ROUND_STATE, { seenIds: [...roundSeenRef.current], sig }).catch(() => {});
-    setCurrent(pickNextQuestion(performance, activeModules, selection, questions, nurPruefung, nurFalsch));
+    saveJSON(KEYS.ROUND_STATE, { seenIds: [...roundSeenRef.current], currentId: next?.id ?? null, sig }).catch(() => {});
+    setCurrent(next);
     setSelected(null);
     setPhase('question');
   }
