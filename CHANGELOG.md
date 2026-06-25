@@ -1,5 +1,11 @@
 # Changelog – LSS Lern-App
 
+## v1.1.8 – 2026-06-25 (OTA 55853f66)
+
+- Einheitliche Versionsanzeige: nur noch `Version 1.1.8` in App-Info; `runtimeVersion 1.1.0` nicht mehr im UI
+
+---
+
 ## v1.1.7 – 2026-06-25 (OTA 88aa7a6f)
 
 - **Fix: Weitermachen wo aufgehört** – App-Neustart und Tab-Wechsel zeigen jetzt dieselbe Frage wie zuvor; `ROUND_STATE` speichert `currentId` und wird in `handleAnswer` + `handleNext` aktualisiert
