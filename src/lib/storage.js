@@ -14,7 +14,10 @@ export const KEYS = {
   NOTIF_PREFS: 'lernapp:notif_prefs',   // [{hour,minute,enabled},...]
   // v1.1.1
   THEME: 'lernapp:theme',               // 'dark' | 'light' | 'system'
-  NUR_PRUEFUNG: 'lernapp:nur_pruefung', // boolean — Modul-Filter
+  NUR_PRUEFUNG: 'lernapp:nur_pruefung', // boolean — Fragen-Filter (fundstelle vorhanden)
+  // v1.1.5
+  NUR_FALSCH: 'lernapp:nur_falsch',     // boolean — nur falsch beantwortete Fragen
+  ROUND_STATE: 'lernapp:round_state',   // { seenIds: string[], sig: string }
 };
 
 export async function loadJSON(key, fallback) {
@@ -77,16 +80,31 @@ export async function incrementDaily() {
   return daily;
 }
 
+function yesterdayKey() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+
+// Beim App-Start/Fokus prüfen ob Streak durch verpassten Tag gebrochen wurde
+export async function checkStreakOnFocus() {
+  const yesterday = yesterdayKey();
+  const streak = await loadJSON(KEYS.STREAK, { count: 0, lastDate: '' });
+  // Wenn lastDate vor gestern → mindestens ein Tag ohne Ziel → Streak zurücksetzen
+  if (streak.count > 0 && streak.lastDate && streak.lastDate < yesterday) {
+    const reset = { count: 0, lastDate: streak.lastDate };
+    await saveJSON(KEYS.STREAK, reset);
+    return reset;
+  }
+  return streak;
+}
+
 // Streak aktualisieren wenn Tagesziel erreicht; gibt neue Streak zurück
 export async function updateStreak(dailyCount, goal) {
   const today = todayKey();
-  const yesterday = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.getFullYear() + '-' +
-      String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
-  })();
+  const yesterday = yesterdayKey();
 
   if (dailyCount < goal) return await loadJSON(KEYS.STREAK, { count: 0, lastDate: '' });
 

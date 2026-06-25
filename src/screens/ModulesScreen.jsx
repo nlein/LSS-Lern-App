@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Switch
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Switch, Alert
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -62,7 +62,7 @@ export default function ModulesScreen() {
   }
 
   async function toggleGroup(groupId, value) {
-    const groupModules = visibleModules.filter((m) => m.group === groupId).map((m) => m.id);
+    const groupModules = modulesData.filter((m) => m.group === groupId).map((m) => m.id);
     const updated = { ...activeModules };
     if (!value) {
       const otherActive = Object.entries(updated).filter(([id, on]) => on && !groupModules.includes(id));
@@ -78,21 +78,53 @@ export default function ModulesScreen() {
     await saveJSON(KEYS.NUR_PRUEFUNG, val);
   }
 
-  function isGroupActive(groupId) {
-    return visibleModules.filter((m) => m.group === groupId).every((m) => activeModules[m.id]);
+  async function applyStandardPreset() {
+    const preset = Object.fromEntries(modulesData.map((m) => [m.id, m.relevanz === 'pruefung']));
+    setActiveModules(preset);
+    await saveJSON(KEYS.ACTIVE_MODULES, preset);
+    // Invalidate round state so LearnScreen starts fresh
+    await saveJSON(KEYS.ROUND_STATE, null);
   }
 
-  const visibleModules = nurPruefung
-    ? modulesData.filter((m) => m.relevanz === 'pruefung')
-    : modulesData;
+  async function confirmResetModule(mod) {
+    Alert.alert(
+      'Modul zurücksetzen',
+      `Fortschritt für „${mod.name}" zurücksetzen? Alle richtig/falsch-Daten dieses Moduls werden gelöscht.`,
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Zurücksetzen', style: 'destructive',
+          onPress: async () => {
+            const modQIds = new Set(questions.filter((q) => q.module === mod.id).map((q) => q.id));
+            const newPerf = { ...performance };
+            modQIds.forEach((id) => delete newPerf[id]);
+            setPerformance(newPerf);
+            await saveJSON(KEYS.PERFORMANCE, newPerf);
+            // Remove module IDs from round state
+            const roundState = await loadJSON(KEYS.ROUND_STATE, null);
+            if (roundState?.seenIds) {
+              const cleaned = roundState.seenIds.filter((id) => !modQIds.has(id));
+              await saveJSON(KEYS.ROUND_STATE, { ...roundState, seenIds: cleaned });
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  function isGroupActive(groupId) {
+    return modulesData.filter((m) => m.group === groupId).every((m) => activeModules[m.id]);
+  }
+
+  const visibleModules = modulesData;
 
   const styles = makeStyles(colors);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Filter-Toggle */}
+      {/* Nur-Mitschrift-Kernstoff Toggle */}
       <View style={styles.filterRow}>
-        <Text style={styles.filterLabel}>Nur Prüfungsrelevant</Text>
+        <Text style={styles.filterLabel}>Nur Mitschrift-Kernstoff</Text>
         <Switch
           value={nurPruefung}
           onValueChange={handleNurPruefung}
@@ -100,6 +132,11 @@ export default function ModulesScreen() {
           thumbColor={nurPruefung ? colors.accent : colors.textMuted}
         />
       </View>
+
+      {/* Standard-Prüfung Preset */}
+      <TouchableOpacity style={styles.presetBtn} onPress={applyStandardPreset}>
+        <Text style={styles.presetBtnText}>📋 Standard-Prüfung (LSS BB · PMI · Scrum · Digi)</Text>
+      </TouchableOpacity>
 
       {GROUPS.map((group) => {
         const groupModules = visibleModules.filter((m) => m.group === group.id);
@@ -167,6 +204,13 @@ export default function ModulesScreen() {
                       </View>
                     )}
                   </View>
+                  <TouchableOpacity
+                    onPress={() => confirmResetModule(mod)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    style={styles.resetBtn}
+                  >
+                    <Text style={styles.resetBtnText}>↺</Text>
+                  </TouchableOpacity>
                   <Switch
                     value={isOn}
                     onValueChange={() => toggleModule(mod.id)}
@@ -194,10 +238,18 @@ function makeStyles(colors) {
     filterRow: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       backgroundColor: colors.surface, borderRadius: 12,
-      padding: 14, marginBottom: 16,
+      padding: 14, marginBottom: 10,
       borderWidth: 1, borderColor: colors.border,
     },
     filterLabel: { color: colors.text, fontWeight: '600', fontSize: 15 },
+    presetBtn: {
+      backgroundColor: colors.surface, borderRadius: 12,
+      padding: 13, marginBottom: 16, alignItems: 'center',
+      borderWidth: 1, borderColor: colors.accent,
+    },
+    presetBtnText: { color: colors.accent, fontWeight: '600', fontSize: 13 },
+    resetBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+    resetBtnText: { color: colors.textMuted, fontSize: 18 },
     group: { marginBottom: 20 },
     groupHeader: {
       flexDirection: 'row', alignItems: 'center',

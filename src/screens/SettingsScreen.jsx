@@ -7,6 +7,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useTheme } from '../lib/ThemeContext';
@@ -296,6 +297,15 @@ export default function SettingsScreen() {
   const reportCount = Object.keys(reports).filter((id) => !reports[id].sent).length;
   const flaggedCount = Object.keys(flagged).length;
   const appVersion = Constants.expoConfig?.version ?? '1.1';
+  const updateInfo = (() => {
+    try {
+      if (Updates.isEmbeddedLaunch || !Updates.updateId) return 'Stand: Eingebaut';
+      const dateStr = Updates.createdAt
+        ? new Date(Updates.createdAt).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' })
+        : '–';
+      return `Update: ${Updates.updateId.slice(0, 8)} · ${dateStr}`;
+    } catch { return ''; }
+  })();
 
   const styles = makeStyles(colors);
 
@@ -504,7 +514,7 @@ export default function SettingsScreen() {
         <View style={styles.infoBox}>
           <Text style={styles.infoBoxText}>
             LSS Lern-App · Version {appVersion}{'\n'}
-            Fragen lokal gespeichert · Updates per OTA{'\n\n'}
+            {updateInfo ? updateInfo + '\n' : ''}Fragen lokal gespeichert · Updates per OTA{'\n\n'}
             Lizenz: MIT
           </Text>
           <TouchableOpacity onPress={() => Linking.openURL(GITHUB_REPO)} style={styles.linkBtn}>

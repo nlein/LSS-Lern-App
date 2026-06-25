@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useTheme } from '../lib/ThemeContext';
-import { loadJSON, KEYS, migrateActiveModules, todayKey } from '../lib/storage';
+import { loadJSON, KEYS, migrateActiveModules, todayKey, checkStreakOnFocus } from '../lib/storage';
 import { calcModuleStats } from '../lib/spacedRepetition';
 import modulesData from '../data/modules.json';
 
@@ -25,12 +25,11 @@ export default function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       async function load() {
-        const [perf, mods, daily, streak, np] = await Promise.all([
+        const [perf, mods, daily, streak] = await Promise.all([
           loadJSON(KEYS.PERFORMANCE, {}),
           loadJSON(KEYS.ACTIVE_MODULES, {}),
           loadJSON(KEYS.DAILY, { date: '', count: 0 }),
-          loadJSON(KEYS.STREAK, { count: 0 }),
-          loadJSON(KEYS.NUR_PRUEFUNG, false),
+          checkStreakOnFocus(),
         ]);
 
         const { result: activeMods } = migrateActiveModules(mods);
@@ -38,11 +37,7 @@ export default function DashboardScreen() {
         const today      = todayKey();
         const todayCount = daily.date === today ? daily.count : 0;
 
-        const visibleModules = modulesData.filter((m) => {
-          if (!activeMods[m.id]) return false;
-          if (np && m.relevanz !== 'pruefung') return false;
-          return true;
-        });
+        const visibleModules = modulesData.filter((m) => activeMods[m.id]);
 
         const moduleStats = visibleModules.map((mod) => ({
           ...mod,

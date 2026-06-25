@@ -9,7 +9,7 @@ import { useTheme } from '../lib/ThemeContext';
 import { FONT_SIZES } from '../lib/theme';
 import {
   loadJSON, saveJSON, KEYS, migrateActiveModules,
-  incrementDaily, updateStreak, todayKey,
+  incrementDaily, updateStreak, todayKey, checkStreakOnFocus,
 } from '../lib/storage';
 import { weightedRandom, filterQuestions } from '../lib/spacedRepetition';
 import { scheduleReminders, DEFAULT_TIMES } from '../lib/notifications';
@@ -37,6 +37,7 @@ export default function LearnScreen() {
   const [questions, setQuestions]       = useState([]);
   const [dailyGoal, setDailyGoal]       = useState(DEFAULT_DAILY_GOAL);
   const [nurPruefung, setNurPruefung]   = useState(false);
+  const [nurFalsch, setNurFalsch]       = useState(false);
 
   const [current, setCurrent]           = useState(null);
   const [selected, setSelected]         = useState(null);
@@ -48,24 +49,27 @@ export default function LearnScreen() {
   const roundSeenRef   = useRef(new Set());
   const notifPrefsRef  = useRef(DEFAULT_TIMES);
 
-  // A+B: pick next question with unseen-first round-robin + fresh displayKey
-  function pickNextQuestion(perf, mods, sel, qs, np = false) {
-    const p = filterQuestions(qs, mods, sel, np);
+  function buildSelectionSig(mods, np, sel, nf) {
+    const modKeys = Object.entries(mods).filter(([, v]) => v).map(([k]) => k).sort().join(',');
+    return `${modKeys}|${np}|${sel.schriftlich}|${sel.kommission}|${nf}`;
+  }
+
+  // pick next question with unseen-first round-robin + fresh displayKey
+  function pickNextQuestion(perf, mods, sel, qs, np = false, nf = false) {
+    const p = filterQuestions(qs, mods, sel, np, nf, perf);
     if (!p.length) return null;
     const unseen = p.filter((q) => !roundSeenRef.current.has(q.id));
     if (unseen.length === 0) {
-      // All seen once — start new round
       roundSeenRef.current = new Set();
     }
     const selectFrom = unseen.length > 0 ? unseen : p;
     const q = weightedRandom(selectFrom, perf);
-    // B: attach a unique displayKey so cards re-shuffle even for the same question
     return q ? { ...q, _displayKey: Math.random() } : null;
   }
 
   useEffect(() => {
     async function init() {
-      const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal, np, notifPrefs] = await Promise.all([
+      const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal, np, notifPrefs, nf, roundState] = await Promise.all([
         loadJSON(KEYS.PERFORMANCE, {}),
         loadJSON(KEYS.ACTIVE_MODULES, buildDefaultModules()),
         loadJSON(KEYS.FLAGGED, {}),
@@ -73,10 +77,12 @@ export default function LearnScreen() {
         loadJSON(KEYS.SELECTION, DEFAULT_SELECTION),
         loadJSON(KEYS.FONT_SIZE, 'medium'),
         loadJSON(KEYS.DAILY, { date: '', count: 0 }),
-        loadJSON(KEYS.STREAK, { count: 0, lastDate: '' }),
+        checkStreakOnFocus(),
         loadJSON(KEYS.DAILY_GOAL, DEFAULT_DAILY_GOAL),
         loadJSON(KEYS.NUR_PRUEFUNG, false),
         loadJSON(KEYS.NOTIF_PREFS, DEFAULT_TIMES),
+        loadJSON(KEYS.NUR_FALSCH, false),
+        loadJSON(KEYS.ROUND_STATE, null),
       ]);
 
       const { result: migratedMods, changed } = migrateActiveModules(mods);
@@ -92,6 +98,7 @@ export default function LearnScreen() {
       setFontSize(FONT_SIZES[savedSize] ?? FONT_SIZES.medium);
       setDailyGoal(goal);
       setNurPruefung(np);
+      setNurFalsch(nf);
       const todayCountInit = daily.date === todayKey() ? daily.count : 0;
       setTodayCount(todayCountInit);
       setStreakCount(streak.count);
@@ -99,8 +106,14 @@ export default function LearnScreen() {
       const qs = loadAllQuestions().map((q) => ({ ...q, _flagged: fl[q.id] ?? false }));
       setQuestions(qs);
 
-      roundSeenRef.current = new Set();
-      setCurrent(pickNextQuestion(perf, migratedMods, sel, qs, np));
+      // Restore round state if selection signature matches
+      const sig = buildSelectionSig(migratedMods, np, sel, nf);
+      if (roundState?.sig === sig && Array.isArray(roundState?.seenIds)) {
+        roundSeenRef.current = new Set(roundState.seenIds);
+      } else {
+        roundSeenRef.current = new Set();
+      }
+      setCurrent(pickNextQuestion(perf, migratedMods, sel, qs, np, nf));
 
       const remaining = Math.max(0, goal - todayCountInit);
       scheduleReminders(notifPrefsRef.current, remaining, goal).catch(() => {});
@@ -112,7 +125,7 @@ export default function LearnScreen() {
   useFocusEffect(
     useCallback(() => {
       async function refresh() {
-        const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal, np, notifPrefs] = await Promise.all([
+        const [perf, mods, fl, rep, sel, savedSize, daily, streak, goal, np, notifPrefs, nf, roundState] = await Promise.all([
           loadJSON(KEYS.PERFORMANCE, {}),
           loadJSON(KEYS.ACTIVE_MODULES, buildDefaultModules()),
           loadJSON(KEYS.FLAGGED, {}),
@@ -120,10 +133,12 @@ export default function LearnScreen() {
           loadJSON(KEYS.SELECTION, DEFAULT_SELECTION),
           loadJSON(KEYS.FONT_SIZE, 'medium'),
           loadJSON(KEYS.DAILY, { date: '', count: 0 }),
-          loadJSON(KEYS.STREAK, { count: 0, lastDate: '' }),
+          checkStreakOnFocus(),
           loadJSON(KEYS.DAILY_GOAL, DEFAULT_DAILY_GOAL),
           loadJSON(KEYS.NUR_PRUEFUNG, false),
           loadJSON(KEYS.NOTIF_PREFS, DEFAULT_TIMES),
+          loadJSON(KEYS.NUR_FALSCH, false),
+          loadJSON(KEYS.ROUND_STATE, null),
         ]);
 
         const { result: migratedMods } = migrateActiveModules(mods);
@@ -136,6 +151,7 @@ export default function LearnScreen() {
         setFontSize(FONT_SIZES[savedSize] ?? FONT_SIZES.medium);
         setDailyGoal(goal);
         setNurPruefung(np);
+        setNurFalsch(nf);
         const todayCountRefresh = daily.date === todayKey() ? daily.count : 0;
         setTodayCount(todayCountRefresh);
         setStreakCount(streak.count);
@@ -143,8 +159,13 @@ export default function LearnScreen() {
         const qs = loadAllQuestions().map((q) => ({ ...q, _flagged: fl[q.id] ?? false }));
         setQuestions(qs);
 
-        // Reset round when coming back from other screens (pool may have changed)
-        roundSeenRef.current = new Set();
+        // Restore round state if signature matches, else fresh round
+        const sig = buildSelectionSig(migratedMods, np, sel, nf);
+        if (roundState?.sig === sig && Array.isArray(roundState?.seenIds)) {
+          roundSeenRef.current = new Set(roundState.seenIds);
+        } else {
+          roundSeenRef.current = new Set();
+        }
 
         const remaining = Math.max(0, goal - todayCountRefresh);
         scheduleReminders(notifPrefsRef.current, remaining, goal).catch(() => {});
@@ -158,8 +179,15 @@ export default function LearnScreen() {
   }
 
   const pool = useMemo(
-    () => filterQuestions(questions, activeModules, selection, nurPruefung),
-    [questions, activeModules, selection, nurPruefung]
+    () => filterQuestions(questions, activeModules, selection, nurPruefung, nurFalsch, performance),
+    [questions, activeModules, selection, nurPruefung, nurFalsch, performance]
+  );
+
+  // Count wrong questions in base pool (for toggle label, regardless of nurFalsch)
+  const falschCount = useMemo(
+    () => filterQuestions(questions, activeModules, selection, nurPruefung, false, performance)
+            .filter((q) => (performance[q.id]?.incorrect ?? 0) > 0).length,
+    [questions, activeModules, selection, nurPruefung, performance]
   );
 
   async function handleAnswer(result) {
@@ -218,11 +246,12 @@ export default function LearnScreen() {
     }
   }
 
-  // A: advance to next with round-robin unseen-first
   function handleNext() {
-    // Mark current as seen in this round before picking next
     if (current) roundSeenRef.current.add(current.id);
-    setCurrent(pickNextQuestion(performance, activeModules, selection, questions, nurPruefung));
+    // Persist round state so the app can continue where it left off
+    const sig = buildSelectionSig(activeModules, nurPruefung, selection, nurFalsch);
+    saveJSON(KEYS.ROUND_STATE, { seenIds: [...roundSeenRef.current], sig }).catch(() => {});
+    setCurrent(pickNextQuestion(performance, activeModules, selection, questions, nurPruefung, nurFalsch));
     setSelected(null);
     setPhase('question');
   }
@@ -283,9 +312,20 @@ export default function LearnScreen() {
     if (!newSel.schriftlich && !newSel.kommission) return;
     setSelection(newSel);
     await saveJSON(KEYS.SELECTION, newSel);
-    // A: pool changed — reset round
     roundSeenRef.current = new Set();
-    setCurrent(pickNextQuestion(performance, activeModules, newSel, questions, nurPruefung));
+    saveJSON(KEYS.ROUND_STATE, null).catch(() => {});
+    setCurrent(pickNextQuestion(performance, activeModules, newSel, questions, nurPruefung, nurFalsch));
+    setSelected(null);
+    setPhase('question');
+  }
+
+  async function toggleNurFalsch() {
+    const newNf = !nurFalsch;
+    setNurFalsch(newNf);
+    await saveJSON(KEYS.NUR_FALSCH, newNf);
+    roundSeenRef.current = new Set();
+    saveJSON(KEYS.ROUND_STATE, null).catch(() => {});
+    setCurrent(pickNextQuestion(performance, activeModules, selection, questions, nurPruefung, newNf));
     setSelected(null);
     setPhase('question');
   }
@@ -350,16 +390,28 @@ export default function LearnScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+        <TouchableOpacity
+          style={[styles.toggleBtn, styles.toggleBtnFalsch, nurFalsch && styles.toggleBtnFalschActive]}
+          onPress={toggleNurFalsch}
+        >
+          <Text style={[styles.toggleText, nurFalsch && styles.toggleTextFalsch]}>
+            {`✗ Nur falsch beantwortete${falschCount > 0 ? ` (${falschCount})` : ''}`}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {pool.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Keine Fragen</Text>
+            <Text style={styles.emptyTitle}>
+              {nurFalsch ? 'Alles richtig! 💪' : 'Keine Fragen'}
+            </Text>
             <Text style={styles.emptyText}>
-              {!selection.schriftlich && !selection.kommission
-                ? 'Aktiviere mindestens eine Fragenauswahl.'
-                : 'Aktiviere Module unter „Module".'}
+              {nurFalsch
+                ? 'Keine falsch beantworteten Fragen in der aktuellen Auswahl.'
+                : !selection.schriftlich && !selection.kommission
+                  ? 'Aktiviere mindestens eine Fragenauswahl.'
+                  : 'Aktiviere Module unter „Module".'}
             </Text>
           </View>
         ) : current?.type === 'open' ? (
@@ -419,11 +471,14 @@ function makeStyles(colors) {
       borderRadius: 10, paddingVertical: 10, alignItems: 'center',
       borderWidth: 1, borderColor: colors.border,
     },
-    toggleBtnActive:     { backgroundColor: colors.accentDim,     borderColor: colors.accent },
-    toggleBtnCommission: { backgroundColor: colors.commissionDim, borderColor: colors.commission },
+    toggleBtnActive:      { backgroundColor: colors.accentDim,     borderColor: colors.accent },
+    toggleBtnCommission:  { backgroundColor: colors.commissionDim, borderColor: colors.commission },
+    toggleBtnFalsch:      { marginTop: 8, flex: 0 },
+    toggleBtnFalschActive:{ backgroundColor: colors.wrongDim, borderColor: colors.wrong },
     toggleText:           { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
     toggleTextActive:     { color: colors.accent },
     toggleTextCommission: { color: colors.commission },
+    toggleTextFalsch:     { color: colors.wrong },
     scroll: { flex: 1 },
     nextBtn: {
       backgroundColor: colors.surface, borderRadius: 12,

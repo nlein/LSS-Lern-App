@@ -28,11 +28,14 @@ export function weightedRandom(questions, performance) {
 }
 
 // selection = { schriftlich: bool, kommission: bool }
-// nurPruefung = bool — when true, only questions with relevanz === 'pruefung'
-export function filterQuestions(questions, activeModules, selection, nurPruefung = false) {
+// nurPruefung = bool — when true, only questions with non-empty fundstelle (Mitschrift-Kernstoff)
+// nurFalsch   = bool — when true, only questions answered incorrectly at least once
+// performance = object — required when nurFalsch is true
+export function filterQuestions(questions, activeModules, selection, nurPruefung = false, nurFalsch = false, performance = {}) {
   return questions.filter((q) => {
     if (!activeModules[q.module]) return false;
-    if (nurPruefung && q.relevanz !== 'pruefung') return false;
+    if (nurPruefung && !q.fundstelle) return false;
+    if (nurFalsch && !(performance[q.id]?.incorrect > 0)) return false;
     const isMC = q.type === 'multiple_choice' || q.type === 'multiple_choice_multi';
     const isOpen = q.type === 'open';
     if (selection.schriftlich && isMC) return true;
