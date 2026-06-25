@@ -68,6 +68,9 @@ export default function OpenQuestionCard({
           <View style={styles.musterantwort}>
             <Text style={[styles.musterLabel, { fontSize: fontSize.label }]}>Musterantwort</Text>
             <Text style={[styles.musterText, { fontSize: fontSize.body }]}>{question.musterantwort}</Text>
+            {!!question.fundstelle && (
+              <Text style={[styles.fundstelle, { fontSize: fontSize.label }]}>📖 Fundstelle: {question.fundstelle}</Text>
+            )}
           </View>
 
           {phase === 'question' && (
@@ -160,6 +163,7 @@ function makeStyles(colors) {
       letterSpacing: 0.5,
     },
     musterText: { color: colors.text, lineHeight: 22 },
+    fundstelle: { color: colors.textMuted, marginTop: 8, fontStyle: 'italic' },
     selfAssess: { gap: 8 },
     selfLabel: { color: colors.textSub, fontWeight: '600' },
     selfButtons: { flexDirection: 'row', gap: 8 },

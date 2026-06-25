@@ -156,6 +156,9 @@ export default function MultiChoiceCard({
           <Text style={[styles.explanationText, { fontSize: fontSize?.body ?? 13 }]}>
             {question.explanation}
           </Text>
+          {!!question.fundstelle && (
+            <Text style={[styles.fundstelle, { fontSize: fontSize?.label ?? 11 }]}>📖 Fundstelle: {question.fundstelle}</Text>
+          )}
         </View>
       )}
     </View>
@@ -236,5 +239,6 @@ function makeStyles(colors) {
       borderLeftWidth: 3, borderLeftColor: colors.accent,
     },
     explanationText: { color: colors.textSub, lineHeight: 20 },
+    fundstelle: { color: colors.textMuted, marginTop: 8, fontStyle: 'italic' },
   });
 }

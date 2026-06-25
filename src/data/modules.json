@@ -25,5 +25,6 @@
   { "id": "change_leadership",  "name": "Change & Leadership",                "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
   { "id": "csr",                "name": "CSR",                                "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
   { "id": "business_mgmt",      "name": "Business Management",                "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" },
-  { "id": "digi_ki_vertiefung", "name": "Digitalisierung & KI (Vertiefung)", "group": "digi",       "format": "schriftlich",            "relevanz": "vertiefung" }
+  { "id": "digi_ki_vertiefung", "name": "Digitalisierung & KI (Vertiefung)", "group": "digi",       "format": "schriftlich",            "relevanz": "vertiefung" },
+  { "id": "sales_kam",         "name": "Sales & KAM-Excellence",            "group": "vertiefung", "format": "schriftlich",            "relevanz": "vertiefung" }
 ]

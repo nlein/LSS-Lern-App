@@ -83,6 +83,9 @@ export default function QuestionCard({
       {phase === 'answer' && question.explanation && (
         <View style={styles.explanation}>
           <Text style={[styles.explanationText, { fontSize: fontSize.body }]}>{question.explanation}</Text>
+          {!!question.fundstelle && (
+            <Text style={[styles.fundstelle, { fontSize: fontSize.label }]}>📖 Fundstelle: {question.fundstelle}</Text>
+          )}
         </View>
       )}
     </View>
@@ -183,6 +186,11 @@ function makeStyles(colors) {
     explanationText: {
       color: colors.textSub,
       lineHeight: 20,
+    },
+    fundstelle: {
+      color: colors.textMuted,
+      marginTop: 8,
+      fontStyle: 'italic',
     },
   });
 }
