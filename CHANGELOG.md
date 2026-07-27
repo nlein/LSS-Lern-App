@@ -1,5 +1,13 @@
 # Changelog – LSS Lern-App
 
+## v1.1.9 – 2026-07-27 (OTA 5bc9efdb)
+
+- **Benachrichtigungen entdoppelt:** In-flight-Lock + Deduplizierung; scheduleReminders nur noch bei App-Start und Einstellungsänderungen
+- **Tageszielbasierter Reminder-Text:** kein veraltetes „noch X Fragen" mehr; statischer motivierender Text mit Tagesziel
+- **APK-Download-Link:** dauerhafter Link via `install`-Release, README-Installationsanleitung
+
+---
+
 ## v1.1.8 – 2026-06-25 (OTA 55853f66)
 
 - Einheitliche Versionsanzeige: nur noch `Version 1.1.8` in App-Info; `runtimeVersion 1.1.0` nicht mehr im UI
