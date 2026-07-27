@@ -2,6 +2,20 @@
 
 Expo React Native app for exam preparation: Lean Six Sigma Black Belt, PMI, and Scrum (PSM I / PSPO I).
 
+---
+
+## 📲 App herunterladen & installieren (Android)
+
+**[⬇️ LSS-Lern-App.apk herunterladen](https://github.com/nlein/LSS-Lern-App/releases/download/install/LSS-Lern-App.apk)**
+
+1. APK-Datei auf dem Handy antippen
+2. Falls gefragt: „Installation aus unbekannten Quellen erlauben" aktivieren
+3. Installieren — fertig!
+
+Updates kommen danach **automatisch per OTA** (kein erneutes Herunterladen nötig).
+
+---
+
 ## Features
 
 - Spaced-repetition question selection (unseen-first round-robin + weight formula)

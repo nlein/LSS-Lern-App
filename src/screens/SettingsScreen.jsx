@@ -16,7 +16,7 @@ import { scheduleReminders, cancelAllReminders, DEFAULT_TIMES } from '../lib/not
 const GITHUB_REPO        = 'https://github.com/nlein/LSS-Lern-App';
 const RELEASES_URL       = 'https://github.com/nlein/LSS-Lern-App/releases/latest';
 const REPORT_EMAIL       = 'nic.lein@posteo.de';
-const APP_CONTENT_VERSION = 'v1.1.8';
+const APP_CONTENT_VERSION = 'v1.1.9';
 
 function loadAllQuestions() {
   return require('../data/questions').all ?? [];

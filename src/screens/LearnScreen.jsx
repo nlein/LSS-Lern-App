@@ -122,8 +122,7 @@ export default function LearnScreen() {
         setCurrent(pickNextQuestion(perf, migratedMods, sel, qs, np, nf));
       }
 
-      const remaining = Math.max(0, goal - todayCountInit);
-      scheduleReminders(notifPrefsRef.current, remaining, goal).catch(() => {});
+      scheduleReminders(notifPrefsRef.current, goal).catch(() => {});
     }
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -183,8 +182,6 @@ export default function LearnScreen() {
             : pickNextQuestion(perf, migratedMods, sel, qs, np, nf);
         });
 
-        const remaining = Math.max(0, goal - todayCountRefresh);
-        scheduleReminders(notifPrefsRef.current, remaining, goal).catch(() => {});
       }
       refresh();
     }, [])
@@ -245,8 +242,6 @@ export default function LearnScreen() {
     const daily    = await incrementDaily();
     const newCount = daily.count;
     setTodayCount(newCount);
-    const remaining = Math.max(0, dailyGoal - newCount);
-    scheduleReminders(notifPrefsRef.current, remaining, dailyGoal).catch(() => {});
     const newStreak = await updateStreak(newCount, dailyGoal);
     setStreakCount(newStreak.count);
 
